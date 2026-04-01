@@ -1,0 +1,101 @@
+[
+  {
+    "id": "module::main.py",
+    "type": "MODULE",
+    "name": "main",
+    "file": "main.py",
+    "line_start": 1,
+    "line_end": 31,
+    "docstring": "",
+    "source_code": "import sys\r\nfrom parser.discover import discover_files\r\nfrom parser.parse import extract_nodes\r\nfrom parser.relationships import extract_edges\r\nfrom parser.resolve import resolve_cross_file_calls\r\nfrom parser.embedding import enrich_nodes_with_embeddings\r\nfrom parser.serialise import save_output\r\n\r\ndef run(root_dir):\r\n    all_nodes, all_edges = [], []\r\n    files = discover_files(root_dir)\r\n    print(f\"Found {len(files)} Python files.\")\r\n\r\n    for file_info in files:\r\n        try:\r\n            with open(file_info[\"path\"], \"rb\") as f:\r\n                source_bytes = f.read()\r\n            nodes = extract_nodes(file_info, source_bytes)\r\n            edges = extract_edges(file_info, nodes, source_bytes)\r\n            all_nodes.extend(nodes)\r\n            all_edges.extend(edges)\r\n        except Exception as e:\r\n            print(f\"Error parsing {file_info['path']}: {e}\")\r\n\r\n    all_edges = resolve_cross_file_calls(all_edges, all_nodes, root_dir)  # resolve.py\r\n    all_nodes = enrich_nodes_with_embeddings(all_nodes)                   # embedding.py\r\n    save_output(all_nodes, all_edges)                                      # serialise.py\r\n\r\nif __name__ == \"__main__\":\r\n    root = sys.argv[1] if len(sys.argv) > 1 else \".\"\r\n    run(root)",
+    "embedding_text": "module main\nimport sys\nfrom parser.discover import discover_files\nfrom parser.parse import extract_nodes\nfrom parser.relationships import extract_edges\nfrom parser.resolve import resolve_cross_file_calls\nfrom parser.embedding import enrich_nodes_with_embeddings\nfrom parser.serialise import save_output"
+  },
+  {
+    "id": "module::test.py",
+    "type": "MODULE",
+    "name": "test",
+    "file": "test.py",
+    "line_start": 1,
+    "line_end": 12,
+    "docstring": "",
+    "source_code": "import json\r\n\r\nwith open(\"output/nodes.json\") as f:\r\n    nodes = json.load(f)\r\n\r\nquery = \"embed\"\r\n\r\nfor n in nodes:\r\n    if \"embedding\" in n[\"embedding_text\"].lower():\r\n        print(\"MATCH:\", n[\"type\"], n[\"name\"])\r\n        print(n[\"embedding_text\"])\r\n        print(\"-----\")",
+    "embedding_text": "module test\nimport json\nwith open(\"output/nodes.json\") as f:\n    nodes = json.load(f)\nquery = \"embed\"\nfor n in nodes:"
+  },
+  {
+    "id": "module::parser/discover.py",
+    "type": "MODULE",
+    "name": "parser.discover",
+    "file": "parser\\discover.py",
+    "line_start": 1,
+    "line_end": 14,
+    "docstring": "",
+    "source_code": "import os\r\n\r\nSKIP_DIRS = {\"__pycache__\", \".git\", \"venv\", \".venv\", \"node_modules\", \"test\", \"tests\"}\r\n\r\ndef discover_files(root_dir):\r\n    py_files = []\r\n    for dirpath, dirnames, filenames in os.walk(root_dir):\r\n        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]\r\n        for filename in filenames:\r\n            if filename.endswith(\".py\"):\r\n                full_path = os.path.join(dirpath, filename)\r\n                rel_path = os.path.relpath(full_path, root_dir)\r\n                py_files.append({\"path\": full_path, \"rel_path\": rel_path})\r\n    return py_files",
+    "embedding_text": "module parser.discover\nimport os\nSKIP_DIRS = {\"__pycache__\", \".git\", \"venv\", \".venv\", \"node_modules\", \"test\", \"tests\"}\ndef discover_files(root_dir):\n    py_files = []\n    for dirpath, dirnames, filenames in os.walk(root_dir):\n        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]"
+  },
+  {
+    "id": "module::parser/embedding.py",
+    "type": "MODULE",
+    "name": "parser.embedding",
+    "file": "parser\\embedding.py",
+    "line_start": 1,
+    "line_end": 36,
+    "docstring": "",
+    "source_code": "def build_embedding_text(node):\r\n    parts = []\r\n\r\n    if node[\"type\"] == \"FUNCTION\":\r\n        parts.append(f\"function {node['name']}\")\r\n        parts.append(node[\"name\"].replace(\"_\", \" \"))  # helps matching words\r\n\r\n        if node.get(\"docstring\"):\r\n            parts.append(node[\"docstring\"])\r\n\r\n    elif node[\"type\"] == \"CLASS\":\r\n        parts.append(f\"class {node['name']}\")\r\n        parts.append(node[\"name\"].replace(\"_\", \" \"))\r\n\r\n        if node.get(\"docstring\"):\r\n            parts.append(node[\"docstring\"])\r\n\r\n    elif node[\"type\"] == \"MODULE\":\r\n        parts.append(f\"module {node['name']}\")\r\n\r\n    # Add first few lines of source as context\r\n    source_preview = \"\\n\".join(\r\n        line for line in node.get(\"source_code\", \"\").splitlines()[:8]\r\n        if line.strip()\r\n    )\r\n\r\n    if source_preview:\r\n        parts.append(source_preview)\r\n\r\n    return \"\\n\".join(parts)\r\n\r\ndef enrich_nodes_with_embeddings(nodes):\r\n    \"\"\"Add embedding_text field to every node in place.\"\"\"\r\n    for node in nodes:\r\n        node[\"embedding_text\"] = build_embedding_text(node)\r\n    return nodes",
+    "embedding_text": "module parser.embedding\ndef build_embedding_text(node):\n    parts = []\n    if node[\"type\"] == \"FUNCTION\":\n        parts.append(f\"function {node['name']}\")\n        parts.append(node[\"name\"].replace(\"_\", \" \"))  # helps matching words\n        if node.get(\"docstring\"):"
+  },
+  {
+    "id": "module::parser/parse.py",
+    "type": "MODULE",
+    "name": "parser.parse",
+    "file": "parser\\parse.py",
+    "line_start": 1,
+    "line_end": 88,
+    "docstring": "",
+    "source_code": "import tree_sitter_python as tspython\r\nfrom tree_sitter import Language, Parser\r\n\r\nPY_LANGUAGE = Language(tspython.language())\r\nparser = Parser(PY_LANGUAGE)\r\n\r\ndef normalise_id(rel_path):\r\n    return rel_path.replace(\"\\\\\", \"/\")\r\n\r\ndef get_docstring(node, source):\r\n    for child in node.children:\r\n        if child.type == \"block\":\r\n            for stmt in child.children:\r\n                if stmt.type == \"expression_statement\":\r\n                    for s in stmt.children:\r\n                        if s.type == \"string\":\r\n                            return source[s.start_byte:s.end_byte].strip('\"\"\"').strip(\"'''\").strip()\r\n    return \"\"\r\n\r\ndef extract_nodes(file_info, source_bytes):\r\n    source = source_bytes.decode(\"utf-8\", errors=\"replace\")\r\n    tree = parser.parse(source_bytes)\r\n    nodes = []\r\n    module_id = f\"module::{normalise_id(file_info['rel_path'])}\"\r\n    \r\n    nodes.append({\r\n        \"id\": module_id,\r\n        \"type\": \"MODULE\",\r\n        \"name\": file_info['rel_path'].replace(\"\\\\\", \".\").replace(\"/\", \".\").removesuffix(\".py\"),\r\n        \"file\": file_info['rel_path'],\r\n        \"line_start\": 1,\r\n        \"line_end\": source.count(\"\\n\") + 1,\r\n        \"docstring\": \"\",\r\n        \"source_code\": source,\r\n        \"embedding_text\": source[:300],\r\n    })\r\n    \r\n    def walk(node, inside_function=False, inside_class=False):\r\n        if node.type == \"class_definition\":\r\n            name_node = node.child_by_field_name(\"name\")\r\n            name = source_bytes[name_node.start_byte:name_node.end_byte].decode(\"utf-8\", errors=\"replace\")\r\n\r\n            nodes.append({\r\n                \"id\": f\"class::{normalise_id(file_info['rel_path'])}::{name}\",\r\n                \"type\": \"CLASS\",\r\n                \"name\": name,\r\n                \"file\": normalise_id(file_info['rel_path']),\r\n                \"line_start\": node.start_point[0] + 1,\r\n                \"line_end\": node.end_point[0] + 1,\r\n                \"docstring\": get_docstring(node, source),\r\n                \"source_code\": source_bytes[node.start_byte:node.end_byte].decode(\"utf-8\", errors=\"replace\"),\r\n                \"embedding_text\": f\"class {name}\\n{get_docstring(node, source)}\",\r\n            })\r\n\r\n            for child in node.children:\r\n                walk(child, inside_function=False, inside_class=True)\r\n\r\n        elif node.type == \"function_definition\":\r\n            name_node = node.child_by_field_name(\"name\")\r\n            name = source_bytes[name_node.start_byte:name_node.end_byte].decode(\"utf-8\", errors=\"replace\")\r\n\r\n            params_node = node.child_by_field_name(\"parameters\")\r\n            sig = source[params_node.start_byte:params_node.end_byte] if params_node else \"()\"\r\n\r\n            # \ud83d\udd25 STRICT CHECK: only allow if grandparent is module or class\r\n            parent = node.parent\r\n            grandparent = parent.parent if parent else None\r\n\r\n            is_top_level = parent and parent.type == \"module\"\r\n            is_class_method = grandparent and grandparent.type == \"class_definition\"\r\n\r\n            if is_top_level or is_class_method:\r\n                nodes.append({\r\n                    \"id\": f\"fn::{normalise_id(file_info['rel_path'])}::{name}\",\r\n                    \"type\": \"FUNCTION\",\r\n                    \"name\": name,\r\n                    \"file\": normalise_id(file_info['rel_path']),\r\n                    \"line_start\": node.start_point[0] + 1,\r\n                    \"line_end\": node.end_point[0] + 1,\r\n                    \"docstring\": get_docstring(node, source),\r\n                    \"source_code\": source_bytes[node.start_byte:node.end_byte].decode(\"utf-8\", errors=\"replace\"),\r\n                    \"embedding_text\": f\"def {name}{sig}\\n{get_docstring(node, source)}\",\r\n                })\r\n\r\n            for child in node.children:\r\n                walk(child, inside_function=True, inside_class=inside_class)\r\n    walk(tree.root_node)\r\n    return nodes",
+    "embedding_text": "module parser.parse\nimport tree_sitter_python as tspython\nfrom tree_sitter import Language, Parser\nPY_LANGUAGE = Language(tspython.language())\nparser = Parser(PY_LANGUAGE)\ndef normalise_id(rel_path):\n    return rel_path.replace(\"\\\\\", \"/\")"
+  },
+  {
+    "id": "module::parser/relationships.py",
+    "type": "MODULE",
+    "name": "parser.relationships",
+    "file": "parser\\relationships.py",
+    "line_start": 1,
+    "line_end": 65,
+    "docstring": "",
+    "source_code": "from tree_sitter import Parser\r\nimport tree_sitter_python as tspython\r\nfrom tree_sitter import Language\r\n\r\nPY_LANGUAGE = Language(tspython.language())\r\n\r\ndef normalise_id(rel_path):\r\n    return rel_path.replace(\"\\\\\", \"/\")\r\n\r\ndef extract_edges(file_info, nodes, source_bytes):\r\n    source = source_bytes.decode(\"utf-8\", errors=\"replace\")\r\n    parser_local = Parser(PY_LANGUAGE)\r\n    tree = parser_local.parse(source_bytes)\r\n    edges = []\r\n    module_id = f\"module::{normalise_id(file_info['rel_path'])}\"\r\n    \r\n    def walk(node, parent_class=None):\r\n        if node.type == \"class_definition\":\r\n            name_node = node.child_by_field_name(\"name\")\r\n            name = source_bytes[name_node.start_byte:name_node.end_byte].decode(\"utf-8\", errors=\"replace\")\r\n\r\n            class_id = f\"class::{normalise_id(file_info['rel_path'])}::{name}\"\r\n            edges.append({\"type\": \"CONTAINS\", \"from\": module_id, \"to\": class_id})\r\n\r\n            for child in node.children:\r\n                walk(child, parent_class=name)\r\n\r\n        elif node.type == \"function_definition\":\r\n            name_node = node.child_by_field_name(\"name\")\r\n            name = source_bytes[name_node.start_byte:name_node.end_byte].decode(\"utf-8\", errors=\"replace\")\r\n\r\n            parent = node.parent\r\n            grandparent = parent.parent if parent else None\r\n\r\n            # \u2705 Only allow:\r\n            # - top-level functions\r\n            # - class methods\r\n            is_top_level = parent and parent.type == \"module\"\r\n            is_class_method = grandparent and grandparent.type == \"class_definition\"\r\n\r\n            if is_top_level or is_class_method:\r\n                fn_id = f\"fn::{normalise_id(file_info['rel_path'])}::{name}\"\r\n\r\n                if parent_class:\r\n                    class_id = f\"class::{normalise_id(file_info['rel_path'])}::{parent_class}\"\r\n                    edges.append({\"type\": \"DEFINES_METHOD\", \"from\": class_id, \"to\": fn_id})\r\n                else:\r\n                    edges.append({\"type\": \"CONTAINS\", \"from\": module_id, \"to\": fn_id})\r\n\r\n            for child in node.children:\r\n                walk(child, parent_class=parent_class)\r\n\r\n        elif node.type == \"import_from_statement\":\r\n            mod_node = node.child_by_field_name(\"module_name\")\r\n            if mod_node:\r\n                imported_mod = source[mod_node.start_byte:mod_node.end_byte]\r\n                as_path = imported_mod.lstrip(\".\").replace(\".\", \"/\") + \".py\"\r\n                edges.append({\"type\": \"IMPORTS\", \"from\": module_id, \"to\": f\"module::{as_path}\"})\r\n\r\n        else:\r\n            for child in node.children:\r\n                walk(child, parent_class=parent_class)\r\n    \r\n    walk(tree.root_node)\r\n    return edges",
+    "embedding_text": "module parser.relationships\nfrom tree_sitter import Parser\nimport tree_sitter_python as tspython\nfrom tree_sitter import Language\nPY_LANGUAGE = Language(tspython.language())\ndef normalise_id(rel_path):\n    return rel_path.replace(\"\\\\\", \"/\")"
+  },
+  {
+    "id": "module::parser/resolve.py",
+    "type": "MODULE",
+    "name": "parser.resolve",
+    "file": "parser\\resolve.py",
+    "line_start": 1,
+    "line_end": 47,
+    "docstring": "",
+    "source_code": "import jedi\r\n\r\ndef build_symbol_table(nodes):\r\n    \"\"\"Map fully-qualified names to node IDs for fast lookup.\"\"\"\r\n    table = {}\r\n    for node in nodes:\r\n        key = f\"{node['file']}::{node['name']}\"\r\n        table[key] = node[\"id\"]\r\n    return table\r\n\r\n\r\ndef resolve_cross_file_calls(edges, nodes, root_dir):\r\n    \"\"\"\r\n    Use Jedi to resolve which module a called function actually lives in,\r\n    then update CALLS edges to point at the correct node ID.\r\n    \"\"\"\r\n    # Build a quick lookup: file -> list of function nodes in that file\r\n    file_to_nodes = {}\r\n    for node in nodes:\r\n        file_to_nodes.setdefault(node[\"file\"], []).append(node)\r\n\r\n    resolved_edges = []\r\n    for edge in edges:\r\n        if edge[\"type\"] != \"CALLS\":\r\n            resolved_edges.append(edge)\r\n            continue\r\n\r\n        # Try to resolve using Jedi \u2014 best-effort, fall through on failure\r\n        try:\r\n            # edge[\"from\"] looks like fn::blog/models.py::save\r\n            parts = edge[\"from\"].split(\"::\")\r\n            if len(parts) < 2:\r\n                resolved_edges.append(edge)\r\n                continue\r\n\r\n            rel_path = parts[1]\r\n            full_path = f\"{root_dir}/{rel_path}\"\r\n\r\n            script = jedi.Script(path=full_path)\r\n            # Jedi resolution is line-based; this is a lightweight pass\r\n            # For a full implementation, track call line numbers in Step 4\r\n            resolved_edges.append(edge)  # placeholder \u2014 Jedi call goes here\r\n\r\n        except Exception:\r\n            resolved_edges.append(edge)  # graceful fallback\r\n\r\n    return resolved_edges",
+    "embedding_text": "module parser.resolve\nimport jedi\ndef build_symbol_table(nodes):\n    \"\"\"Map fully-qualified names to node IDs for fast lookup.\"\"\"\n    table = {}\n    for node in nodes:\n        key = f\"{node['file']}::{node['name']}\"\n        table[key] = node[\"id\"]"
+  },
+  {
+    "id": "module::parser/serialise.py",
+    "type": "MODULE",
+    "name": "parser.serialise",
+    "file": "parser\\serialise.py",
+    "line_start": 1,
+    "line_end": 10,
+    "docstring": "",
+    "source_code": "import json\r\n\r\ndef save_output(nodes, edges, output_dir=\"output\"):\r\n    import os\r\n    os.makedirs(output_dir, exist_ok=True)\r\n    with open(f\"{output_dir}/nodes.json\", \"w\") as f:\r\n        json.dump(nodes, f, indent=2)\r\n    with open(f\"{output_dir}/edges.json\", \"w\") as f:\r\n        json.dump(edges, f, indent=2)\r\n    print(f\"Saved {len(nodes)} nodes and {len(edges)} edges.\")",
+    "embedding_text": "module parser.serialise\nimport json\ndef save_output(nodes, edges, output_dir=\"output\"):\n    import os\n    os.makedirs(output_dir, exist_ok=True)\n    with open(f\"{output_dir}/nodes.json\", \"w\") as f:\n        json.dump(nodes, f, indent=2)\n    with open(f\"{output_dir}/edges.json\", \"w\") as f:"
+  },
+  {
+    "id": "module::parser/__init__.py",
+    "type": "MODULE",
+    "name": "parser.__init__",
+    "file": "parser\\__init__.py",
+    "line_start": 1,
+    "line_end": 2,
+    "docstring": "",
+    "source_code": "# parser/__init__.py\r\n# Makes this directory a Python package.",
+    "embedding_text": "module parser.__init__\n# parser/__init__.py\n# Makes this directory a Python package."
+  }
+]

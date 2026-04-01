@@ -1,0 +1,107 @@
+[
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/discover.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/parse.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/relationships.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/resolve.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/embedding.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::main.py",
+    "to": "module::parser/serialise.py"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::main.py",
+    "to": "fn::main.py::run"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/discover.py",
+    "to": "fn::parser/discover.py::discover_files"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/embedding.py",
+    "to": "fn::parser/embedding.py::build_embedding_text"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/embedding.py",
+    "to": "fn::parser/embedding.py::enrich_nodes_with_embeddings"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::parser/parse.py",
+    "to": "module::tree_sitter.py"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/parse.py",
+    "to": "fn::parser/parse.py::normalise_id"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/parse.py",
+    "to": "fn::parser/parse.py::get_docstring"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/parse.py",
+    "to": "fn::parser/parse.py::extract_nodes"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::parser/relationships.py",
+    "to": "module::tree_sitter.py"
+  },
+  {
+    "type": "IMPORTS",
+    "from": "module::parser/relationships.py",
+    "to": "module::tree_sitter.py"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/relationships.py",
+    "to": "fn::parser/relationships.py::normalise_id"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/relationships.py",
+    "to": "fn::parser/relationships.py::extract_edges"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/resolve.py",
+    "to": "fn::parser/resolve.py::build_symbol_table"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/resolve.py",
+    "to": "fn::parser/resolve.py::resolve_cross_file_calls"
+  },
+  {
+    "type": "CONTAINS",
+    "from": "module::parser/serialise.py",
+    "to": "fn::parser/serialise.py::save_output"
+  }
+]
